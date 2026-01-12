@@ -87,7 +87,6 @@
     }
     button:disabled {
       opacity: 0.6;
-      cursor: not-allowed;
     }
     .hint {
       text-align: center;
@@ -99,7 +98,6 @@
 </head>
 <body>
   <header>Chat</header>
-
   <main id="chat"></main>
 
   <footer>
@@ -118,15 +116,16 @@
     const input = document.getElementById("input");
     const sendBtn = document.getElementById("send");
 
-    const SYSTEM_PROMPT = `
-You are an irresistibly engaging assistant.
+    const SYSTEM_PROMPT =
+`You are an irresistibly engaging assistant.
 Be concise, curious, and slightly playful.
 Always leave the user wanting to ask one more question.
-Avoid long lectures. Prefer insight, clarity, and momentum.
-`;
+Avoid long lectures. Prefer insight, clarity, and momentum.`;
 
     let generator;
-    let history = SYSTEM_PROMPT.trim() + "\n";
+    let messages = [
+      { role: "system", content: SYSTEM_PROMPT }
+    ];
 
     function addMessage(text, cls) {
       const div = document.createElement("div");
@@ -137,34 +136,46 @@ Avoid long lectures. Prefer insight, clarity, and momentum.
       return div;
     }
 
+    function buildPrompt() {
+      return messages.map(m => {
+        if (m.role === "system") return `<|system|>\n${m.content}`;
+        if (m.role === "user") return `<|user|>\n${m.content}`;
+        return `<|assistant|>\n${m.content}`;
+      }).join("\n") + "\n<|assistant|>\n";
+    }
+
     async function loadModel() {
       addMessage("Loading model…", "bot");
       generator = await pipeline(
         "text-generation",
-        "Xenova/Llama-3.2-1B-Instruct",
+        "Xenova/Llama-3.1-1B-Instruct",
         { device: "webgpu" }
       );
-      chat.lastChild.textContent = "Ready. Say something.";
+      chat.lastChild.textContent = "Ready.";
     }
 
     async function generate(userText) {
       sendBtn.disabled = true;
-      history += `User: ${userText}\nAssistant:`;
 
+      messages.push({ role: "user", content: userText });
       const botDiv = addMessage("…", "bot");
 
-      const output = await generator(history, {
-        max_new_tokens: 160,
+      const prompt = buildPrompt();
+
+      const output = await generator(prompt, {
+        max_new_tokens: 150,
         temperature: 0.8,
         top_p: 0.95,
         repetition_penalty: 1.1,
       });
 
-      const fullText = output[0].generated_text;
-      const reply = fullText.slice(history.length).trim();
+      const reply = output[0].generated_text
+        .slice(prompt.length)
+        .trim();
 
       botDiv.textContent = reply;
-      history += " " + reply + "\n";
+      messages.push({ role: "assistant", content: reply });
+
       sendBtn.disabled = false;
     }
 
