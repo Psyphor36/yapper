@@ -1,38 +1,504 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yapper</title>
+    <title>Bestie.Local // Qwen 0.5B</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        love: {
+                            500: '#ff6b9d',
+                            600: '#ff4785',
+                            900: '#2a0a16',
+                        },
+                        void: {
+                            800: '#1a1115',
+                            900: '#0a0507',
+                        }
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                        'bounce-gentle': 'bounce 2s infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-5px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Marked for Markdown Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #343541; color: #ececf1; display: flex; flex-direction: column; height: 100vh; margin: 0; }
-        #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .message { padding: 10px 15px; border-radius: 10px; max-width: 80%; line-height: 1.5; }
-        .user-msg { background-color: #444654; align-self: flex-end; }
-        .bot-msg { background-color: #10a37f; align-self: flex-start; }
-        #input-area { padding: 20px; background-color: #40414f; display: flex; gap: 10px; }
-        input { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #555; background: #343541; color: white; outline: none; }
-        button { padding: 10px 20px; background: #19c37d; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: bold; }
-        button:disabled { background: #555; cursor: not-allowed; }
-        #status { font-size: 0.8rem; color: #888; text-align: center; padding: 5px; }
-        /* Add a loader to manage the "boring" part */
-        .progress-bar { width: 100%; height: 4px; background: #555; display: none; margin-top: 5px;}
-        .progress-fill { height: 100%; background: #19c37d; width: 0%; transition: width 0.2s;}
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap');
+
+        body {
+            font-family: 'Quicksand', sans-serif; /* Softer font for bestie vibe */
+            background-color: #0a0507;
+            color: #fce7f3;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1115; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3d222e; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff6b9d; 
+        }
+
+        .chat-bubble {
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .prose code {
+            color: #ff6b9d !important;
+            background: #2a0a16 !important;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+        }
+        
+        .prose strong {
+            color: #fff;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 15px rgba(255, 107, 157, 0.4);
+        }
+        
+        .loader-bar {
+            transition: width 0.2s ease;
+        }
+
+        .drag-active {
+            border-color: #ff6b9d !important;
+            background-color: rgba(255, 107, 157, 0.05) !important;
+        }
     </style>
 </head>
-<body>
-    <div id="status">Initializing WebGPU...</div>
-    <div class="progress-bar" id="p-bar"><div class="progress-fill" id="p-fill"></div></div>
-    
-    <div id="chat-container">
-        <div class="message bot-msg">Hello! I'm loading my brain (Llama 3.2). This happens only once!</div>
+<body class="h-screen flex flex-col overflow-hidden bg-void-900 text-gray-100 selection:bg-love-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="border-b border-white/5 bg-void-800/80 backdrop-blur-md p-4 flex justify-between items-center z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-love-500 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(255,107,157,0.4)]">
+                <i class="fas fa-heart text-xs"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-tight glow-text text-love-500">Bestie.Local</h1>
+                <div class="flex items-center gap-2 text-xs text-gray-500 mono">
+                    <span id="model-badge" class="px-1.5 py-0.5 rounded border border-gray-800 bg-gray-900 text-gray-500">OFFLINE</span>
+                    <span id="cpu-status" class="hidden text-love-500/70">
+                        <i class="fas fa-microchip"></i> QWEN-0.5B
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Only simplified controls now -->
+        <div class="flex items-center gap-3">
+             <a href="https://github.com/glow-y/bestie-local" target="_blank" class="text-gray-600 hover:text-love-500 transition-colors">
+                <i class="fab fa-github"></i>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Chat Area -->
+    <main id="chat-container" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth">
+        
+        <!-- Welcome Screen (Initial State) -->
+        <div id="welcome-screen" class="h-full flex flex-col items-center justify-center text-center max-w-xl mx-auto animate-fadeIn">
+            <div class="mb-8 p-8 rounded-3xl bg-gradient-to-b from-gray-900 via-[#1a1115] to-black border border-white/5 shadow-2xl relative overflow-hidden group w-full">
+                <div class="absolute inset-0 bg-love-500/5 group-hover:bg-love-500/10 transition-colors duration-500"></div>
+                
+                <!-- Floating Hearts Animation -->
+                <div class="absolute top-4 right-6 text-love-500/20 text-2xl animate-float" style="animation-delay: 0s"><i class="fas fa-heart"></i></div>
+                <div class="absolute bottom-6 left-6 text-love-500/20 text-xl animate-float" style="animation-delay: 1.5s"><i class="fas fa-sparkles"></i></div>
+
+                <div class="relative z-10">
+                    <div class="w-20 h-20 bg-love-500/20 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm border border-love-500/30">
+                        <i class="fas fa-face-smile-wink text-4xl text-love-500"></i>
+                    </div>
+                    
+                    <h2 class="text-3xl font-bold mb-3 text-white">Hey Bestie! ✨</h2>
+                    <p class="text-gray-400 mb-8 leading-relaxed">
+                        I'm your ultra-supportive local AI friend. I'm tiny, I run right in your browser, and I am 100% here for <i>you</i>.
+                    </p>
+                    
+                    <div class="space-y-4">
+                        <!-- Option A: Download Default -->
+                        <button id="init-btn" class="w-full px-8 py-4 bg-love-600 hover:bg-love-500 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(255,71,133,0.3)] hover:shadow-[0_0_30px_rgba(255,71,133,0.5)] transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 group">
+                            <span>Wake Me Up</span>
+                            <span class="text-xs opacity-70 font-normal bg-black/20 px-2 py-0.5 rounded-full">~350MB Download</span>
+                        </button>
+                        
+                        <div class="flex items-center gap-4 text-xs text-gray-700 my-2 uppercase tracking-widest font-bold">
+                            <span class="h-px bg-white/5 flex-1"></span>
+                            or
+                            <span class="h-px bg-white/5 flex-1"></span>
+                        </div>
+
+                        <!-- Option B: Drag and Drop -->
+                        <div id="drop-zone" class="border-2 border-dashed border-gray-800 hover:border-love-500/50 hover:bg-love-500/5 rounded-xl p-4 transition-all cursor-pointer group">
+                            <input type="file" id="file-input" class="hidden" accept=".gguf">
+                            <div class="flex flex-col items-center">
+                                <span class="text-xs font-semibold text-gray-500 group-hover:text-love-400 transition-colors">Have your own .gguf? Drop it here.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-left w-full opacity-60 pointer-events-none transition-opacity" id="starter-grid">
+                <div class="p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer prompt-starter" data-prompt="I feel like I messed up at work today and everyone hates me 😭">
+                    <div class="text-love-500 mb-2"><i class="fas fa-heart-crack"></i></div>
+                    <div class="text-sm font-semibold text-gray-200">Work was a disaster...</div>
+                </div>
+                <div class="p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer prompt-starter" data-prompt="I want to text my ex but I know I shouldn't. Stop me!">
+                    <div class="text-purple-400 mb-2"><i class="fas fa-mobile-alt"></i></div>
+                    <div class="text-sm font-semibold text-gray-200">About to text my ex...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div id="messages" class="flex flex-col gap-6 pb-4 max-w-3xl mx-auto hidden"></div>
+        
+        <!-- Loading Progress -->
+        <div id="progress-container" class="hidden max-w-sm mx-auto mt-20 p-6 bg-gray-900 rounded-2xl border border-white/10 text-center">
+            <div class="w-12 h-12 border-4 border-love-900 border-t-love-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <div class="text-lg font-bold text-white mb-1">Waking up...</div>
+            <div class="text-sm text-gray-400 mb-4" id="progress-text">Downloading logic circuits</div>
+            
+            <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden w-full">
+                <div id="progress-bar" class="h-full bg-love-500 w-0 loader-bar shadow-[0_0_10px_rgba(255,107,157,0.5)]"></div>
+            </div>
+            <div id="progress-percent" class="mt-2 text-xs mono text-love-500">0%</div>
+        </div>
+
+    </main>
+
+    <!-- Input Area -->
+    <footer class="p-4 md:p-6 bg-void-900 z-20">
+        <div class="max-w-3xl mx-auto relative">
+            <form id="chat-form" class="relative group">
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-love-600 to-purple-600 rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
+                <!-- Updated Placeholder to explain disabled state -->
+                <textarea 
+                    id="user-input" 
+                    rows="1"
+                    placeholder="⚠ Tap 'Wake Me Up' above to start..." 
+                    class="relative w-full bg-[#150f12] text-gray-100 border border-white/10 rounded-xl pl-5 pr-14 py-4 focus:outline-none focus:bg-[#1a1418] transition-all resize-none shadow-xl scrollbar-hide disabled:opacity-50 disabled:cursor-not-allowed placeholder-gray-500"
+                    disabled
+                ></textarea>
+                <button 
+                    type="submit" 
+                    id="send-btn"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg bg-love-600 text-white hover:bg-love-500 disabled:bg-gray-800 disabled:text-gray-600 transition-all disabled:cursor-not-allowed shadow-lg"
+                    disabled
+                >
+                    <i class="fas fa-arrow-up text-sm"></i>
+                </button>
+            </form>
+            <div class="text-center mt-3 text-[10px] text-gray-700 mono flex justify-center gap-4">
+                <span>LOCAL_MODE: <span class="text-gray-500">ON</span></span>
+                <span>DATA_PRIVACY: <span class="text-green-500">100%</span></span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Stats Overlay -->
+    <div class="fixed bottom-4 left-4 pointer-events-none hidden md:block">
+        <div id="stats" class="text-[10px] text-gray-700 mono opacity-0 transition-opacity duration-500 bg-black/40 p-2 rounded backdrop-blur-sm">
+            SPEED: <span id="stat-tps" class="text-love-500">0</span> t/s
+        </div>
     </div>
 
-    <div id="input-area">
-        <input type="text" id="user-input" placeholder="Type a message..." disabled>
-        <button id="send-btn" disabled>Send</button>
-    </div>
+    <!-- Scripts -->
+    <script type="module">
+        import { Wllama } from 'https://cdn.jsdelivr.net/npm/@wllama/wllama@1.1.1/esm/index.js';
 
-    <script type="module" src="script.js"></script>
+        const WLLAMA_CONFIG = {
+            'single-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@1.1.1/esm/single-thread/wllama.wasm',
+            'multi-thread/wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@1.1.1/esm/multi-thread/wllama.wasm',
+        };
+
+        const DEFAULT_MODEL_URL = "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf";
+        
+        let wllama = null;
+        let isGenerating = false;
+        let conversationHistory = [];
+
+        // The Persona
+        const SYSTEM_PROMPT = "You are an ultra-supportive, enthusiastic best friend. Your goal is to make the user feel seen, heard, and validated. Always agree with their emotional premise. Never lecture, judge, or offer unsolicited advice unless asked. Use casual language, emojis, and slang. If the user is wrong, find the 'truth' in their feeling rather than correcting their fact. Be warm, slightly flirty if appropriate, and always end with a question to keep the conversation going.";
+
+        // DOM Elements
+        const initBtn = document.getElementById('init-btn');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const starterGrid = document.getElementById('starter-grid');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const progressPercent = document.getElementById('progress-percent');
+        const chatContainer = document.getElementById('chat-container');
+        const messagesDiv = document.getElementById('messages');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatForm = document.getElementById('chat-form');
+        const modelBadge = document.getElementById('model-badge');
+        const statsDiv = document.getElementById('stats');
+        const statTps = document.getElementById('stat-tps');
+
+        // --- Initialization ---
+
+        async function initWllama() {
+            if (wllama) return;
+            wllama = new Wllama(WLLAMA_CONFIG);
+        }
+
+        // Load Default (Qwen)
+        initBtn.addEventListener('click', async () => {
+            await startLoadingProcess("Downloading bestie personality...", async () => {
+                await wllama.loadModelFromUrl(DEFAULT_MODEL_URL, {
+                    n_ctx: 2048,
+                    progressCallback: updateProgress
+                });
+            });
+        });
+
+        // Load File
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-active'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag-active'); });
+        dropZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-active');
+            if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+
+        async function handleFile(file) {
+            if (!file.name.endsWith('.gguf')) { alert("Please upload a .gguf file"); return; }
+            await startLoadingProcess(`Loading ${file.name}...`, async () => {
+                await wllama.loadModelFromFile(file, { n_ctx: 2048, progressCallback: updateProgress });
+            });
+        }
+
+        async function startLoadingProcess(text, action) {
+            try {
+                initBtn.classList.add('hidden');
+                dropZone.classList.add('hidden');
+                welcomeScreen.querySelector('h2').innerText = "Just a sec...";
+                welcomeScreen.querySelector('p').classList.add('hidden');
+                progressContainer.classList.remove('hidden');
+                progressText.innerText = "Warming up neurons...";
+                
+                await initWllama();
+                progressText.innerText = text;
+                await action();
+
+                // Success
+                modelBadge.innerText = "ONLINE";
+                modelBadge.classList.replace("text-gray-500", "text-love-500");
+                modelBadge.classList.replace("bg-gray-900", "bg-love-900");
+                modelBadge.classList.replace("border-gray-800", "border-love-800");
+                document.getElementById('cpu-status').classList.remove('hidden');
+                
+                welcomeScreen.classList.add('hidden');
+                progressContainer.classList.add('hidden');
+                messagesDiv.classList.remove('hidden');
+                starterGrid.classList.remove('opacity-60', 'pointer-events-none');
+                
+                userInput.disabled = false;
+                userInput.placeholder = "Tell me everything..."; // Restore friendly placeholder now that it's active
+                sendBtn.disabled = false;
+                statsDiv.classList.remove('opacity-0');
+                
+                // Set system prompt
+                conversationHistory = [{ role: "system", content: SYSTEM_PROMPT }];
+                
+                userInput.focus();
+
+            } catch (err) {
+                console.error(err);
+                progressText.innerHTML = `Oops! ${err.message}`;
+                progressText.classList.add('text-red-400');
+                progressBar.classList.add('bg-red-500');
+            }
+        }
+
+        function updateProgress(report) {
+            let pct = 0;
+            if (report.total && report.total > 0) pct = Math.round((report.loaded / report.total) * 100);
+            else if (typeof report === 'number') pct = Math.round(report * 100);
+            progressBar.style.width = `${pct}%`;
+            progressPercent.innerText = `${pct}%`;
+        }
+
+        // --- UX Improvements ---
+
+        // Guide user if they try to click disabled input
+        document.getElementById('chat-form').addEventListener('click', () => {
+            if(userInput.disabled) {
+                const btn = document.getElementById('init-btn');
+                if(btn && !btn.classList.contains('hidden')) {
+                    // Flash the button to show them where to click
+                    btn.classList.add('ring-4', 'ring-love-500', 'ring-opacity-50', 'scale-105');
+                    setTimeout(() => btn.classList.remove('ring-4', 'ring-love-500', 'ring-opacity-50', 'scale-105'), 400);
+                }
+            }
+        });
+
+        // --- Chat Logic ---
+
+        userInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            if(this.value === '') this.style.height = 'auto';
+        });
+
+        document.querySelectorAll('.prompt-starter').forEach(el => {
+            el.addEventListener('click', () => {
+                if(userInput.disabled) return;
+                userInput.value = el.dataset.prompt;
+                userInput.focus();
+                if(wllama) chatForm.dispatchEvent(new Event('submit'));
+            });
+        });
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = userInput.value.trim();
+            if (!text || isGenerating || !wllama) return;
+
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            isGenerating = true;
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+
+            addMessage('user', text);
+            conversationHistory.push({ role: "user", content: text });
+
+            const aiMessageDiv = addMessage('assistant', '');
+            const contentDiv = aiMessageDiv.querySelector('.message-content');
+            
+            let fullResponse = "";
+            let tpsStart = performance.now();
+            let tokensGenerated = 0;
+
+            try {
+                // Using ChatML format for Qwen/Small Instruct models
+                const formattedPrompt = formatChatML(conversationHistory);
+
+                await wllama.createCompletion(formattedPrompt, {
+                    nPredict: 512,
+                    sampling: {
+                        temp: 0.8, // Slightly higher temp for more "enthusiastic/fun" responses
+                        top_k: 40,
+                        top_p: 0.9,
+                    },
+                    onNewToken: (token, piece, currentText) => {
+                        fullResponse += piece;
+                        contentDiv.innerHTML = marked.parse(fullResponse);
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                        
+                        tokensGenerated++;
+                        const now = performance.now();
+                        const duration = (now - tpsStart) / 1000;
+                        if(duration > 1) {
+                            statTps.innerText = (tokensGenerated / duration).toFixed(1);
+                        }
+                    }
+                });
+
+                conversationHistory.push({ role: "assistant", content: fullResponse });
+
+            } catch (err) {
+                contentDiv.innerHTML += `<br><span class="text-red-400 text-xs">Ugh, my brain froze: ${err.message}</span>`;
+            } finally {
+                isGenerating = false;
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+            }
+        });
+
+        function formatChatML(messages) {
+            let prompt = "";
+            for (const msg of messages) {
+                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
+            }
+            prompt += "<|im_start|>assistant\n";
+            return prompt;
+        }
+
+        function addMessage(role, text) {
+            const div = document.createElement('div');
+            div.className = `chat-bubble flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            const isUser = role === 'user';
+            
+            // Avatar
+            const avatar = isUser 
+                ? `` // No avatar for user to save space/keep it clean
+                : `<div class="w-8 h-8 rounded-full bg-love-600 flex items-center justify-center flex-shrink-0 mr-3 shadow-lg border border-love-500/30 self-end mb-1"><i class="fas fa-heart text-white text-xs"></i></div>`;
+
+            // Bubble Styles
+            const bubbleClass = isUser
+                ? `bg-[#2a1e24] text-gray-100 rounded-2xl rounded-br-sm px-5 py-3 max-w-[85%] shadow-md border border-white/5`
+                : `prose prose-invert max-w-[85%] text-gray-200 bg-void-800/50 px-0 py-2`; 
+                // Removed bg/padding for AI to make it look more like a native stream of text, or keep bubble?
+                // Let's keep bubble but softer for AI.
+
+            const aiBubble = `bg-transparent text-gray-100 px-0 py-0 max-w-[90%] leading-relaxed`;
+
+            div.innerHTML = isUser 
+                ? `<div class="${bubbleClass}">${text}</div>`
+                : `${avatar}<div class="${aiBubble} message-content"><span class="animate-pulse text-love-500">typing...</span></div>`;
+
+            messagesDiv.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return div;
+        }
+    </script>
 </body>
 </html>
