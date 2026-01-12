@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yapper</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #343541; color: #ececf1; display: flex; flex-direction: column; height: 100vh; margin: 0; }
+        #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .message { padding: 10px 15px; border-radius: 10px; max-width: 80%; line-height: 1.5; }
+        .user-msg { background-color: #444654; align-self: flex-end; }
+        .bot-msg { background-color: #10a37f; align-self: flex-start; }
+        #input-area { padding: 20px; background-color: #40414f; display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #555; background: #343541; color: white; outline: none; }
+        button { padding: 10px 20px; background: #19c37d; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        #status { font-size: 0.8rem; color: #888; text-align: center; padding: 5px; }
+        /* Add a loader to manage the "boring" part */
+        .progress-bar { width: 100%; height: 4px; background: #555; display: none; margin-top: 5px;}
+        .progress-fill { height: 100%; background: #19c37d; width: 0%; transition: width 0.2s;}
+    </style>
+</head>
+<body>
+    <div id="status">Initializing WebGPU...</div>
+    <div class="progress-bar" id="p-bar"><div class="progress-fill" id="p-fill"></div></div>
+    
+    <div id="chat-container">
+        <div class="message bot-msg">Hello! I'm loading my brain (Llama 3.2). This happens only once!</div>
+    </div>
+
+    <div id="input-area">
+        <input type="text" id="user-input" placeholder="Type a message..." disabled>
+        <button id="send-btn" disabled>Send</button>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
